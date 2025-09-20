@@ -1,0 +1,26 @@
+{
+	// copy this file to wrangler.jsonc to start in dev environment.
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"assets": {
+		"directory": "./dist/",
+		"not_found_handling": "single-page-application",
+		"binding": "ASSETS",
+		"run_worker_first": ["/api/*"]
+	},
+	"keep_vars": true,
+	"name": "send2tg",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-09-09",
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		"BOT_TOKEN": "", // Telegram bot token, e.g. "12345:AbBbCcDdEeFf1122334455"
+		"BOT_NAME": "", // Telegram bot username (without "@" prefix)
+		// To generate secure values for BOT_SECRET & TOKEN ("[a-ZA-Z0-9]{32}" format):
+		// Linux shell: tr -dc A-Za-z0-9 </dev/urandom | head -c 32 ; echo ''
+		// Windows PowerShell: Add-Type -AssemblyName System.Web; ([System.Web.Security.Membership]::GeneratePassword(64, 0) -replace '[^a-zA-Z0-9]')[0..31] -join ''
+		"BOT_SECRET": "", // (optional) Standalone Telegram bot secret
+		"TOKEN": "" // (optional but recommended to set) Standalone app token
+	}
+}

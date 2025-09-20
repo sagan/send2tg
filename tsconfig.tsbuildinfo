@@ -1,0 +1,7 @@
+{
+	"root": [
+		"./worker-configuration.d.ts",
+		"./src/index.ts"
+	],
+	"version": "5.9.2"
+}
