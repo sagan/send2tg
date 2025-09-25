@@ -77,7 +77,7 @@ export async function hmacSha256SignRaw(key: string, payload: Record<string, unk
 		}
 		payload = new TextEncoder().encode(payloadStr);
 	}
-	const signature = await crypto.subtle.sign('HMAC', singkey, payload);
+	const signature = await crypto.subtle.sign('HMAC', singkey, payload.buffer as ArrayBuffer);
 	return new Uint8Array(signature);
 }
 
@@ -91,7 +91,12 @@ export function decodeHex(str: string): Uint8Array {
 
 export async function hmacSha256Verify(key: string, signature: string, payload: string): Promise<boolean> {
 	const singkey = await getHMACKey(key);
-	const verified = await crypto.subtle.verify('HMAC', singkey, decodeHex(signature), new TextEncoder().encode(payload));
+	const verified = await crypto.subtle.verify(
+		'HMAC',
+		singkey,
+		decodeHex(signature).buffer as ArrayBuffer,
+		new TextEncoder().encode(payload)
+	);
 	return verified;
 }
 
@@ -100,7 +105,7 @@ export async function hmacSha256VerifyRaw(key: string, signature: Uint8Array, pa
 	if (typeof payload == 'string') {
 		payload = new TextEncoder().encode(payload);
 	}
-	const verified = await crypto.subtle.verify('HMAC', singkey, signature, payload);
+	const verified = await crypto.subtle.verify('HMAC', singkey, signature.buffer as ArrayBuffer, payload.buffer as ArrayBuffer);
 	return verified;
 }
 

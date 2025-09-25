@@ -1,6 +1,5 @@
 import React from "react";
-import { UserState, UserStateChat } from "../lib/schema";
-import { parseChat } from "../lib/auth";
+import { parseChat, UserState, UserStateChat } from "@send2tg/lib";
 
 /**
  * Upsert chats to current user state.

@@ -1,29 +1,29 @@
 {
-	"name": "send2tg",
-	"version": "0.1.0",
+	"name": "@send2tg/main",
+	"version": "0.2.0",
 	"private": true,
 	"scripts": {
-		"start": "vite",
+		"start": "npm run start --workspace @send2tg/client",
 		"build": "vite build",
+		"build:all": "npm run build --workspaces && npm run build",
 		"lint": "eslint .",
 		"preview": "vite preview",
 		"deploy": "wrangler deploy",
-		"cfdev": "wrangler dev --env-file src/.env",
+		"cfdev": "wrangler dev",
 		"test": "vitest",
-		"cftypes": "wrangler types --strict-vars=false --env-file src/.env"
+		"cftypes": "wrangler types --strict-vars=false"
 	},
+	"workspaces": [
+		"lib",
+		"client"
+	],
 	"devDependencies": {
+		"@send2tg/lib": "1.0.0",
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
 		"@eslint/js": "^9.33.0",
 		"@grammyjs/types": "^3.22.2",
 		"@types/node": "^24.3.1",
-		"@types/react": "^19.1.10",
-		"@types/react-dom": "^19.1.7",
-		"@vitejs/plugin-react": "^5.0.3",
 		"eslint": "^9.33.0",
-		"eslint-plugin-react-hooks": "^5.2.0",
-		"eslint-plugin-react-refresh": "^0.4.20",
-		"favicons": "^7.2.0",
 		"globals": "^16.3.0",
 		"jsonc": "^2.0.0",
 		"typescript": "^5.8.3",
@@ -33,16 +33,7 @@
 		"wrangler": "^4.37.1"
 	},
 	"dependencies": {
-		"@emotion/react": "^11.14.0",
-		"@emotion/styled": "^11.14.1",
-		"@mui/icons-material": "^7.3.2",
-		"@mui/material": "^7.3.2",
-		"@uidotdev/usehooks": "^2.4.1",
 		"itty-router": "^5.0.22",
-		"json-sorted-stringify": "^1.0.2",
-		"react": "^19.1.1",
-		"react-dom": "^19.1.1",
-		"react-router-dom": "^7.8.2",
-		"zod": "^4.1.8"
+		"json-sorted-stringify": "^1.0.2"
 	}
 }

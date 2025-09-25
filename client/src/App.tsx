@@ -30,12 +30,13 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import Avatar from '@mui/material/Avatar';
 import { deepOrange, deepPurple } from '@mui/material/colors';
-import { UserState, UserStateChat, UserStateSchema } from '../lib/schema';
+import {
+	GITHUB_URL, HASH_AUTH_PREFIX,
+	parseStrictInt, UserState, UserStateChat, UserStateSchema, serializeChat
+} from '@send2tg/lib';
 import AddChatDialog from "./AddChatDialog";
-import { serializeChat } from '../lib/auth';
-import { GITHUB_URL, HASH_AUTH_PREFIX, parseStrictInt } from '../lib/common';
 import { type Message, type AppContextType } from './schema';
-import buildVariables from '../build_variables.json';
+import buildVariables from '@send2tg/lib/build_variables.json';
 import { authChat, updateUserState } from './common';
 
 
@@ -395,7 +396,9 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files && e.target.files[0]) setFile(e.target.files[0]);
+		if (e.target.files && e.target.files[0]) {
+			setFile(e.target.files[0]);
+		}
 	};
 
 	const handleSubmit = () => {

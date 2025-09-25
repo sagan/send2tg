@@ -17,11 +17,10 @@ import { deepOrange } from '@mui/material/colors';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import "./window.d"
-import { UserState } from '../lib/schema';
-import buildVariables from '../build_variables.json';
+import { UserState, serializeChat } from '@send2tg/lib';
+import buildVariables from '@send2tg/lib/build_variables.json';
 import { Message } from './schema';
 import { authChat, updateUserState } from './common';
-import { serializeChat } from '../lib/auth';
 
 const useDynamicStartToken = buildVariables.PUBLIC_LEVEL !== 2;
 const privateMode = buildVariables.PUBLIC_LEVEL === 0;
@@ -71,7 +70,7 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 				throw new Error(`status=${res.status}`);
 			}
 			return res.json();
-		}).then(data => {
+		}).then((data: any) => {
 			setStartToken(data.start_token);
 			setBotName(data.bot_name);
 			if (data.user_start_token && data.user === selectedChatId) {

@@ -1,11 +1,23 @@
 // src/index.ts
 import { AutoRouter, error, IRequest, json, status } from 'itty-router';
 import { type Update } from '@grammyjs/types';
-import { HASH_AUTH_PREFIX, MESSAGE_WELCOME, constantTimeCompare, parseStrictInt, sha256sum, trimPrefix } from '../lib/common';
-import { type UserStateChat } from '../lib/schema';
-import { signChat, serializeChat, parseAndVerifyChat, generateStartToken, verifyStartToken } from '../lib/auth';
-import { AUTH_TOKEN_VALID_DURATION, START_TOKEN_VALID_DURATION } from '../lib/constants';
-import buildVariables from '../build_variables.json';
+import {
+	AUTH_TOKEN_VALID_DURATION,
+	START_TOKEN_VALID_DURATION,
+	HASH_AUTH_PREFIX,
+	MESSAGE_WELCOME,
+	constantTimeCompare,
+	parseStrictInt,
+	sha256sum,
+	trimPrefix,
+	signChat,
+	serializeChat,
+	parseAndVerifyChat,
+	generateStartToken,
+	verifyStartToken,
+	type UserStateChat,
+} from '@send2tg/lib';
+import buildVariables from '@send2tg/lib/build_variables.json';
 
 const router = AutoRouter();
 
