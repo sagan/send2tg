@@ -1,0 +1,19 @@
+{
+	"manifest_version": 3,
+	"name": "Send To Telegram",
+	"description": "Send everything to Telegram",
+	"options_page": "src/pages/options/index.html",
+	"action": {
+		"default_popup": "src/pages/popup/index.html",
+		"default_icon": {
+			"32": "favicon-32x32.png"
+		}
+	},
+	"icons": {
+		"128": "favicon-128x128.png"
+	},
+	"permissions": [
+		"contextMenus",
+		"storage"
+	]
+}

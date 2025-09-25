@@ -1,5 +1,5 @@
 // src/index.ts
-import { AutoRouter, error, IRequest, json, status } from 'itty-router';
+import { AutoRouter, cors, error, IRequest, json, status } from 'itty-router';
 import { type Update } from '@grammyjs/types';
 import {
 	AUTH_TOKEN_VALID_DURATION,
@@ -19,7 +19,12 @@ import {
 } from '@send2tg/lib';
 import buildVariables from '@send2tg/lib/build_variables.json';
 
-const router = AutoRouter();
+// See https://itty.dev/itty-router/cors
+const { preflight, corsify } = cors();
+const router = AutoRouter({
+	before: [preflight],
+	finally: [corsify],
+});
 
 /**
  * Verify auth_token, return {chat_token}.

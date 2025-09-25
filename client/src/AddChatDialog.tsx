@@ -17,7 +17,7 @@ import { deepOrange } from '@mui/material/colors';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import "./window.d"
-import { UserState, serializeChat } from '@send2tg/lib';
+import { UserState, UserStateChat, serializeChat } from '@send2tg/lib';
 import buildVariables from '@send2tg/lib/build_variables.json';
 import { Message } from './schema';
 import { authChat, updateUserState } from './common';
@@ -120,7 +120,16 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 						if (!result) {
 							return;
 						}
-						const importedChats = JSON.parse(result) as UserState['chats'];
+						const data: UserStateChat[] | { serverUrl: string, chats: UserStateChat[] } = JSON.parse(result);
+						let importedChats: UserStateChat[];
+						if (Array.isArray(data)) {
+							importedChats = data;
+						} else {
+							if (data.serverUrl !== location.origin) {
+								throw new Error(`The imported chats are for another server ${data.serverUrl}`);
+							}
+							importedChats = data.chats;
+						}
 						updateUserState(setUserState, ...importedChats);
 						setError("chats updated");
 					} catch (error) {
@@ -136,7 +145,10 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 	}, [setUserState, setError]);
 
 	const handleExport = () => {
-		const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userState.chats));
+		const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+			serverUrl: location.origin,
+			chats: userState.chats,
+		}));
 		const downloadAnchorNode = document.createElement('a');
 		downloadAnchorNode.setAttribute("href", dataStr);
 		downloadAnchorNode.setAttribute("download", `${buildVariables.SITENAME}-chats.json`);

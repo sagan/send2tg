@@ -1,0 +1,13 @@
+{
+	"action": {
+		"default_icon": "public/favicon-32x32.png",
+		"default_popup": "src/pages/popup/index.html"
+	},
+	"icons": {
+		"128": "public/favicon-128x128.png"
+	},
+	"permissions": [
+		"contextMenus",
+		"storage"
+	]
+}

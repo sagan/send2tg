@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+body {
+	background-color: #f9fafb; /* bg-gray-50 */
+}
+
+/* --- Components --- */
+
+.card {
+	@apply bg-white p-6 rounded-lg shadow-md border border-gray-200;
+}
+
+.card-title {
+	@apply text-xl font-bold text-gray-800 mb-2;
+}
+
+.input-field {
+	@apply border border-gray-300 rounded-md px-3 py-2 outline-none transition-shadow;
+}
+.input-field:focus {
+	@apply ring-2 ring-blue-500 border-transparent;
+}
+
+.btn {
+	@apply px-4 py-2 rounded-md font-semibold text-sm shadow-sm transition-colors;
+}
+.btn:focus {
+	@apply outline-none ring-2 ring-offset-2;
+}
+
+/* --- Button Variants --- */
+
+.btn-primary {
+	@apply bg-blue-600 text-white;
+}
+.btn-primary:hover {
+	@apply bg-blue-700;
+}
+.btn-primary:focus {
+	@apply ring-blue-500;
+}
+
+.btn-secondary {
+	@apply bg-gray-200 text-gray-800;
+}
+.btn-secondary:hover {
+	@apply bg-gray-300;
+}
+.btn-secondary:focus {
+	@apply ring-gray-400;
+}
+
+.btn-danger {
+	@apply bg-red-600 text-white;
+}
+.btn-danger:hover {
+	@apply bg-red-700;
+}
+.btn-danger:focus {
+	@apply ring-red-500;
+}
+
+/* --- Modal Styles --- */
+
+.modal-backdrop {
+	@apply fixed inset-0 bg-black flex items-center justify-center z-50;
+}
+
+.modal-content {
+	@apply bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4;
+}

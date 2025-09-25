@@ -3,6 +3,7 @@ import path from 'path';
 import dts from 'vite-plugin-dts';
 import { defineConfig, loadEnv, UserConfig } from 'vite';
 import { favicons } from 'favicons';
+import sharp from 'sharp';
 import react from '@vitejs/plugin-react';
 import { parseStrictInt } from './src/common';
 
@@ -33,22 +34,38 @@ async function generateAssets(variables: BuildVariables) {
 		const res = await fetch(process.env.FAVICON_URL);
 		source = Buffer.from(await res.arrayBuffer());
 	} else {
-		source = path.join(__dirname, process.env.FAVICON_URL);
+		source = path.resolve(__dirname, process.env.FAVICON_URL);
 	}
 
 	const response = await favicons(source, {});
 	// console.log(response.images) // Array of { name: string, contents: <buffer> }
 	const faviconFiles: Record<string, string> = {
 		'favicon.ico': 'favicon.ico',
-		'favicon-32x32.png': 'assets/favicon.png',
+		'favicon-16x16.png': 'assets/favicon-16x16.png',
+		'favicon-32x32.png': 'assets/favicon-32x32.png',
 		'android-chrome-192x192.png': 'assets/favicon-192x192.png',
+		'apple-touch-icon-1024x1024.png': 'assets/favicon-1024x1024.png',
 	};
 	for (const file of response.images) {
-		if (!faviconFiles[file.name]) {
+		if (!(file.name in faviconFiles)) {
 			continue;
 		}
-		await fs.writeFile(path.join(__dirname, 'public', faviconFiles[file.name]), file.contents);
+		let targetFile = faviconFiles[file.name];
+		if (!targetFile) {
+			targetFile = file.name;
+		} else if (targetFile.endsWith('/')) {
+			targetFile += file.name;
+		}
+		await fs.writeFile(path.join(__dirname, 'public', targetFile), file.contents);
 	}
+	// The "favicons" library doesn't support arbitary size icons generation. So we must do it by myself.
+	// THe 128x128 size icon is for Chrome extension.
+	await sharp(path.join(__dirname, 'public/assets/favicon-1024x1024.png'))
+		.resize({
+			width: 128,
+			height: 128,
+		})
+		.toFile(path.join(__dirname, 'public/assets/favicon-128x128.png'));
 	manifest.name = variables.SITENAME;
 	manifest.short_name = variables.SHORT_SITENAME || variables.SITENAME;
 	await fs.writeFile(path.join(__dirname, 'public/assets/manifest.json'), JSON.stringify(manifest, null, 2));

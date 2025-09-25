@@ -2,10 +2,12 @@
 	"name": "@send2tg/main",
 	"version": "0.2.0",
 	"private": true,
+	"license": "Apache-2.0",
 	"scripts": {
 		"start": "npm run start --workspace @send2tg/client",
 		"build": "vite build",
 		"build:all": "npm run build --workspaces && npm run build",
+		"dev:chrome": "npm run dev:chrome --workspace web_extension",
 		"lint": "eslint .",
 		"preview": "vite preview",
 		"deploy": "wrangler deploy",
@@ -15,7 +17,8 @@
 	},
 	"workspaces": [
 		"lib",
-		"client"
+		"client",
+		"web_extension"
 	],
 	"devDependencies": {
 		"@send2tg/lib": "1.0.0",
