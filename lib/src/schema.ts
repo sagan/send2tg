@@ -11,6 +11,10 @@ export const UserStateChatSchema = z.object({
 	 */
 	version: z.number().int().optional().default(0),
 	name: z.string().optional().default(''),
+	/**
+	 * Optional payload
+	 */
+	option: z.string().nonempty().optional(),
 	sign: z.string().optional().default(''),
 });
 

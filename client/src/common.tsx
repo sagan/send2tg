@@ -23,9 +23,10 @@ export function updateUserState(setUserState: React.Dispatch<React.SetStateActio
 	});
 }
 
-export async function authChat(authToken: string): Promise<UserStateChat> {
+export async function authChat(authToken: string, duration = 0): Promise<UserStateChat> {
 	const body = new FormData();
 	body.set("auth_token", authToken);
+	body.set("duration", `${duration}`);
 	const authTokenChat = parseChat(authToken);
 	const res = await fetch("/api/auth", { method: "POST", body });
 	if (!res.ok) {

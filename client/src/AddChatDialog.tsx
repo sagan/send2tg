@@ -3,6 +3,7 @@ import {
 	Dialog,
 	DialogContent,
 	DialogTitle,
+	NativeSelect,
 	Typography,
 } from "@mui/material";
 import Box from '@mui/material/Box';
@@ -21,6 +22,7 @@ import { UserState, UserStateChat, serializeChat } from '@send2tg/lib';
 import buildVariables from '@send2tg/lib/build_variables.json';
 import { Message } from './schema';
 import { authChat, updateUserState } from './common';
+import { AuthOptionsExpiresValues } from '@send2tg/lib/src/auth';
 
 const useDynamicStartToken = buildVariables.PUBLIC_LEVEL !== 2;
 const privateMode = buildVariables.PUBLIC_LEVEL === 0;
@@ -32,6 +34,7 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 	close: () => void;
 	setError: (err: unknown) => void;
 }) {
+	const [duration, setDuration] = useState(0);
 	const [token, setToken] = useState("");
 	const [authToken, setAuthToken] = useState("");
 	const [tokenOk, setTokenOk] = useState(false);
@@ -56,9 +59,18 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 		}
 	}, [selectedChatId, userState.chats]);
 
+	useEffect(() => {
+		if (useDynamicStartToken) {
+			setStartToken("");
+			setUserStartToken("");
+			setUserStartTokenUser(0);
+		}
+	}, [duration])
+
 	const fetchStartToken = useCallback((signal?: AbortSignal) => {
 		const body = new FormData();
 		body.set("user", `${selectedChatId}`);
+		body.set("duration", `${duration}`);
 		if (privateMode) {
 			body.set("token", token);
 		}
@@ -86,7 +98,7 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 			}
 			setError(err);
 		});
-	}, [selectedChatId, setError, token]);
+	}, [selectedChatId, setError, token, duration]);
 
 
 	useEffect(() => {
@@ -157,9 +169,13 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 		downloadAnchorNode.remove();
 	};
 
+	const now = Date.now();
 	const chatListContent = (<List sx={{ pt: 0 }}>
-		{userState.chats.map((chat) => (
-			<ListItem disableGutters key={chat.id}>
+		{userState.chats.map((chat) => {
+			const expired = chat.expires && chat.expires <= now;
+			const expiresMessage = chat.expires
+				? `${expired ? "Expired" : "Expires"} at ${new Date(chat.expires).toISOString().slice(0, 19)}` : ""
+			return <ListItem disableGutters key={chat.id}>
 				<ListItemButton selected={chat.id === selectedChatId} onClick={() => {
 					if (chat.id !== selectedChatId) {
 						setSelectedChatId(chat.id);
@@ -170,7 +186,8 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 					<ListItemIcon>
 						<Avatar sx={{ bgcolor: deepOrange[500] }} >{chat.name.slice(0, 1)}</Avatar>
 					</ListItemIcon>
-					<ListItemText primary={chat.name} />
+					<ListItemText primary={chat.name} secondary={expiresMessage}
+						secondaryTypographyProps={{ style: { color: expired ? "red" : "unset" } }} />
 					<IconButton edge="end" title="Verify chat is valid" aria-label="verify" onClick={() => {
 						const body = new FormData();
 						body.set("chat", serializeChat(chat));
@@ -212,7 +229,7 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 					</IconButton>
 				</ListItemButton>
 			</ListItem>
-		))}
+		})}
 	</List>);
 
 	const startMessage = `/start${startToken ? ` ${startToken}` : ""}`;
@@ -249,7 +266,7 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 				</Box>
 			</form>}
 			<form>
-				{!!loginLink && <>
+				{(!privateMode || tokenOk) && <>
 					<Typography sx={{ mt: 1 }}>
 						Click the above "Add Chat" button,
 						or manually copy and send the below start message to Telegram bot <a href={loginLink}>@{botName}</a>.
@@ -257,13 +274,24 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 					<Box sx={{ mt: 1 }}>
 						<TextField disabled label="Start Message" fullWidth value={startMessage} InputProps={{
 							endAdornment:
-								<IconButton
-									onClick={() => void navigator.clipboard.writeText(startMessage)}
-									title={`Copy`}
-									edge="end"
-								>
-									<ContentCopyIcon />
-								</IconButton>
+								<>
+									{useDynamicStartToken && <NativeSelect title="Limit the valid timespan of authorized chat"
+										disabled={false} inputProps={{ id: 'link-ttl', style: { width: "auto" } }}
+										value={duration} onChange={e => setDuration(parseInt(e.target.value))}>
+										<option value={-1} disabled>Expires</option>
+										<option value={0}>Forever</option>
+										{AuthOptionsExpiresValues.map((v, i) => <option key={i} value={v.duration}>{v.label}</option>)}
+									</NativeSelect>}
+									<IconButton
+										disabled={!loginLink}
+										onClick={() => void navigator.clipboard.writeText(startMessage)}
+										title={`Copy`}
+										edge="end"
+									>
+										<ContentCopyIcon />
+									</IconButton>
+								</>
+
 						}} />
 					</Box>
 					<Box sx={{ mt: 1 }}>
@@ -291,7 +319,7 @@ export default function AddChatDialog({ close, setError, userState, setUserState
 									type='submit' color="primary" disabled={!authToken}
 									onClick={(e) => {
 										e.preventDefault();
-										authChat(authToken).then(chat => {
+										authChat(authToken, duration).then(chat => {
 											updateUserState(setUserState, chat);
 											setError(`chat to "${chat.name}" updated`);
 											setAuthToken("");

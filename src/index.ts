@@ -14,8 +14,16 @@ import {
 	serializeChat,
 	parseAndVerifyChat,
 	generateStartToken,
-	verifyStartToken,
+	parseStartToken,
 	type UserStateChat,
+	AuthOptions,
+	encodeUserChatOption,
+	decodeUserChatOption,
+	generateAuthOptions,
+	getFormDataInt,
+	getAuthOptionsExpiresDuration,
+	getFormDataString,
+	getFormDataFile,
 } from '@send2tg/lib';
 import buildVariables from '@send2tg/lib/build_variables.json';
 
@@ -34,24 +42,42 @@ router.post('/api/auth', async (request, env: Env) => {
 		return status(500);
 	}
 	const formData = await request.formData();
-	const authToken = formData.get('auth_token') as string;
+	const authToken = getFormDataString(formData, 'auth_token');
 	if (!authToken) {
 		return status(400);
 	}
+	const now = Date.now();
 	try {
 		const chat = await parseAndVerifyChat(getAuthTokenSignKey(env), authToken);
 		if (chat.version !== (await getChatTokenVersion(env, chat.id))) {
 			throw new Error('revoked');
 		}
+		const { authOptions } = decodeUserChatOption(chat.option);
+		const [maxDuration] = getAuthOptionsExpiresDuration(authOptions);
+		const maxDurationExpires = maxDuration > 0 ? now + maxDuration : 0;
 		delete chat.expires;
-		const expires = formData.has('expires') ? parseStrictInt(formData.get('expires') as string) : undefined;
+		delete chat.option;
+		let expires = getFormDataInt(formData, 'expires');
+		let duration = getFormDataInt(formData, 'duration');
+		if ((expires && duration) || (expires && expires < 0) || (duration && duration < 0)) {
+			return status(400);
+		}
+		if (duration) {
+			expires = now + duration;
+		}
+		if (expires) {
+			if (maxDurationExpires) {
+				expires = Math.min(expires, maxDurationExpires);
+			}
+		} else if (maxDurationExpires) {
+			expires = maxDurationExpires;
+		}
 		if (expires) {
 			chat.expires = expires;
 		}
 		const chat_token = serializeChat(await signChat(getChatTokenSignKey(env), chat));
 		return json({ chat_token });
 	} catch (_e) {
-		// console.log('auth error', _e);
 		return error(401);
 	}
 });
@@ -65,11 +91,11 @@ router.post('/api/send', async (request, env: Env) => {
 		return status(500);
 	}
 	const formData = await request.formData();
-	const text = formData.get('text');
-	const file = formData.get('file');
-	const chatToken = formData.get('chat') as string;
-	const dryRun = formData.has('dry_run') && formData.get('dry_run') === '1';
-	if (!chatToken || typeof chatToken !== 'string' || (!text && !file && !dryRun)) {
+	const text = getFormDataString(formData, 'text');
+	const file = getFormDataFile(formData, 'file');
+	const chatToken = getFormDataString(formData, 'chat');
+	const dryRun = getFormDataInt(formData, 'dry_run');
+	if (!chatToken || (!text && !file && !dryRun)) {
 		return status(400);
 	}
 	let chat: UserStateChat;
@@ -108,24 +134,19 @@ router.post('/api/start', async (request, env: Env) => {
 	}
 	const formData = await request.formData();
 	if (buildVariables.PUBLIC_LEVEL <= 0) {
-		const token = formData.get('token') as string;
+		const token = getFormDataString(formData, 'token');
 		if (!token || !constantTimeCompare(token, env.TOKEN || env.BOT_TOKEN)) {
 			return json({ public_level: buildVariables.PUBLIC_LEVEL }, { status: 401 });
 		}
 	}
-	const userStr = formData.get('user') as string;
-	let user: number | undefined;
-	if (userStr) {
-		const userId = parseStrictInt(userStr);
-		if (!isNaN(userId)) {
-			user = userId;
-		}
-	}
+	const user = getFormDataInt(formData, 'user') || undefined;
+	const duration = getFormDataInt(formData, 'duration');
 	const now = Date.now();
-	const start_token = await generateStartToken(getStartTokenSignKey(env), now);
+	const authOptions = generateAuthOptions(duration);
+	const start_token = await generateStartToken(getStartTokenSignKey(env), now, undefined, authOptions);
 	let user_start_token: string | undefined;
 	if (user) {
-		user_start_token = await generateStartToken(getStartTokenSignKey(env), now, user);
+		user_start_token = await generateStartToken(getStartTokenSignKey(env), now, user, authOptions);
 	}
 	return json({
 		start_token,
@@ -142,7 +163,7 @@ router.post('/api/set_telegram', async (request, env: Env) => {
 		return status(500);
 	}
 	const formData = await request.formData();
-	const token = formData.get('token') as string;
+	const token = getFormDataString(formData, 'token');
 	if (!token || !constantTimeCompare(env.TOKEN || env.BOT_TOKEN, token)) {
 		return status(401);
 	}
@@ -185,29 +206,45 @@ router.post('/api/webhook', async (request, env: Env) => {
 		// start pameter: up to 64 base64url characters:
 		const startToken = text.slice(6).trim();
 		let startTokenOk: boolean;
+		let authOptions: AuthOptions | undefined;
 		if (buildVariables.PUBLIC_LEVEL == 2) {
 			startTokenOk = !buildVariables.START_TOKEN || constantTimeCompare(startToken, buildVariables.START_TOKEN);
 		} else {
 			const strictUserIdMatch = update.message.chat.id < 0; // negative chat id: group chat
-			startTokenOk = await verifyStartToken(getStartTokenSignKey(env), startToken, update.message.from.id, strictUserIdMatch);
+			[startTokenOk, authOptions] = await parseStartToken(getStartTokenSignKey(env), startToken, update.message.from.id, strictUserIdMatch);
 		}
 		if (startTokenOk) {
+			// In non-private deployment, if it's a group chat, verify the start message is sent by a group admin.
+			if (buildVariables.PUBLIC_LEVEL > 0 && update.message.chat.id < 0) {
+				try {
+					const isAdmin = await verifyUserIsAdmin(env.BOT_TOKEN, update.message.chat.id, update.message.from.id);
+					if (!isAdmin) {
+						return status(200);
+					}
+				} catch (e) {
+					return status(200);
+				}
+			}
 			const chat: UserStateChat = {
 				id: update.message.chat.id,
 				name: update.message.chat.title || update.message.chat.first_name || update.message.from.first_name,
 				sign: '',
 				version: await getChatTokenVersion(env, update.message.chat.id),
 				expires: Date.now() + AUTH_TOKEN_VALID_DURATION,
+				option: encodeUserChatOption(authOptions),
 			};
 			const chatToken = serializeChat(await signChat(getAuthTokenSignKey(env), chat));
 			const urlObj = new URL(realUrl(request));
 			const url = urlObj.origin;
 			const addChatUrl = `${urlObj.origin}/#${HASH_AUTH_PREFIX}${chatToken}`;
+			const [duration, durationLabel] = getAuthOptionsExpiresDuration(authOptions);
 			const txt = `Welcome to use ${buildVariables.SITENAME}:
 ${url}
 ${MESSAGE_WELCOME}
 
-Add chat url for "${chat.name}" (${chat.id}): ${addChatUrl}${chat.expires ? `\n(Valid until ${new Date(chat.expires).toISOString()})` : ''}
+Add chat url for "${chat.name}" (${chat.id}): ${addChatUrl}
+${chat.expires ? `(Valid until ${new Date(chat.expires).toISOString().slice(0, 19)})` : '(Always valid)'}
+(Can authorize chat with max valid timespan: ${duration > 0 ? durationLabel : 'infinite'})
 Auth token (paste it in web app to manually add chat):`;
 
 			// always relpy to the sender.
@@ -234,7 +271,7 @@ function realUrl(request: IRequest): string {
 	return url;
 }
 
-async function sendMessage(token: string, chat_id: number, text: string | File | null, file?: string | File | null) {
+async function sendMessage(token: string, chat_id: number, text: string, file?: File | null) {
 	const apiUrl = `https://api.telegram.org/bot${token}`;
 
 	let telegramApiUrl: string;
@@ -243,7 +280,7 @@ async function sendMessage(token: string, chat_id: number, text: string | File |
 	const MAX_CAPTION_LENGTH = 1024;
 	const MAX_TEXT_LENGTH = 4096;
 
-	if (file && file instanceof File) {
+	if (file) {
 		const isImage = file.type.startsWith('image/');
 		telegramApiUrl = isImage ? `${apiUrl}/sendPhoto` : `${apiUrl}/sendDocument`;
 		body.append(isImage ? 'photo' : 'document', file);
@@ -322,6 +359,22 @@ chat_token`;
  */
 async function getChatTokenVersion(_env: Env, _userId: number): Promise<number> {
 	return 0;
+}
+
+/**
+ * Verify the user is the owner or administrator of a Telegram (group) chat.
+ */
+async function verifyUserIsAdmin(botToken: string, chatId: number, userId: number): Promise<boolean> {
+	const apiUrl = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${chatId}&user_id=${userId}`;
+	const res = await fetch(apiUrl);
+	if (!res.ok) {
+		throw new Error(`status=${res.status},body=${await res.text()}`);
+	}
+	const body = await res.json<{ ok: boolean; result: { status: string } }>();
+	if (!body.ok) {
+		throw new Error(`ok=false,body=${JSON.stringify(body)}`);
+	}
+	return ['creator', 'administrator'].includes(body.result.status);
 }
 
 export default { ...router };

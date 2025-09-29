@@ -226,3 +226,52 @@ export function trimPrefix(str: string, prefix: string): string {
 	}
 	return str;
 }
+
+/**
+ * Get an integer value from FormData, with strict parsing and default value support.
+ * @param fd FormData object
+ * @param name Name of the form field
+ * @param defaultValue Default value to return if the field is missing or invalid (default: NaN)
+ * @returns Parsed integer, or defaultValue if the field is missing or invalid
+ */
+export function getFormDataInt(fd: FormData, name: string, defaultValue = NaN): number {
+	const str = fd.get(name);
+	if (!str || typeof str !== 'string') {
+		return defaultValue;
+	}
+	const num = parseStrictInt(str);
+	if (isNaN(num) && !isNaN(defaultValue)) {
+		return defaultValue;
+	}
+	return num;
+}
+
+/**
+ * Get a string value from FormData, with default value support.
+ * @param fd FormData object
+ * @param name Name of the form field
+ * @param defaultValue Default value to return if the field is missing or is not string (default: empty string)
+ * @returns String value, or defaultValue if the field is missing
+ */
+export function getFormDataString(fd: FormData, name: string, defaultValue = ''): string {
+	const str = fd.get(name);
+	if (!str || typeof str !== 'string') {
+		return defaultValue;
+	}
+	return str || defaultValue;
+}
+
+/**
+ * Get a File value from FormData, with default value support.
+ * @param fd FormData object
+ * @param name Name of the form field
+ * @param defaultValue Default value to return if the field is missing or not a File (default: null)
+ * @returns File object, or defaultValue if the field is missing or not a File
+ */
+export function getFormDataFile(fd: FormData, name: string, defaultValue: File | null = null): File | null {
+	const file = fd.get(name);
+	if (!file || !(file instanceof File)) {
+		return defaultValue;
+	}
+	return file;
+}

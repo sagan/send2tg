@@ -324,7 +324,7 @@ function ChatPage() {
 				id: crypto.randomUUID(),
 				text: text || undefined,
 				fileName: file?.name,
-				timestamp: new Date().toISOString()
+				timestamp: new Date().toISOString().slice(0, 19)
 			};
 			setMessages(prev => ({ ...prev, [chat.id]: [...(prev[chat.id] || []), newMessage] }));
 		} catch (err) {
@@ -350,7 +350,7 @@ function ChatPage() {
 						{msg.text && <ChatMessageText text={msg.text} />}
 						{msg.fileName && <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}><AttachFileIcon fontSize='small' sx={{ mr: 1 }} />{msg.fileName}</Box>}
 						<small style={{ display: 'block', textAlign: 'right', color: '#888', marginTop: '4px' }}>
-							{new Date(msg.timestamp).toISOString()}
+							{new Date(msg.timestamp).toISOString().slice(0, 19)}
 						</small>
 					</Paper>
 				))}

@@ -234,7 +234,7 @@ export default function Popup() {
 											<span className="truncate">{msg.fileName}</span>
 										</div>
 									)}
-									<time className="message-time">{new Date(msg.timestamp).toISOString()}</time>
+									<time className="message-time">{new Date(msg.timestamp).toISOString().slice(0, 19)}</time>
 								</div>
 							))}
 							<div ref={messagesEndRef} />
